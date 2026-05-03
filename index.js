@@ -305,7 +305,7 @@ app.get("/logout", (req, res) => {
 });
 
 // 'Try-catch' 404 page not found Page
-app.get((req, res) => {
+app.use((req, res) => {
   res.status(404).send("Page not found");
 });
 

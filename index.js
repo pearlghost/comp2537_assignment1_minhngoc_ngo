@@ -259,7 +259,7 @@ app.post("/login", async (req, res) => {
   }
 
   req.session.user = user.username;
-  res.redirect("/");
+  res.redirect("/members");
 });
 
 // Members Page

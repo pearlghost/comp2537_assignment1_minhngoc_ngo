@@ -13,7 +13,7 @@ const mongoSanitize = require("express-mongo-sanitize");
 const app = express();
 
 const port = process.env.PORT || 3000;
-const expiryTime = 60 * 60 * 1000; // expires afer 1 hour (60 s * 60 mins * 1000ms)
+const expiryTime = 60 * 60 * 1000; // expires afer 1 hour (60 mins * 60 s * 1000ms)
 
 /* secret information section */
 const mongodb_host = process.env.MONGODB_HOST;
@@ -193,7 +193,7 @@ app.post("/signup", async (req, res) => {
   });
 
   req.session.user = username;
-  res.redirect("/");
+  res.redirect("/members");
 });
 
 // Log In Page

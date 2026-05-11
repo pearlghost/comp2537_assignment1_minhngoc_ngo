@@ -9,8 +9,10 @@ const MongoStore = require("connect-mongo").default;
 const Joi = require("joi");
 const bcrypt = require("bcrypt");
 const mongoSanitize = require("express-mongo-sanitize");
+const { title } = require("process");
 
 const app = express();
+app.set("view engine", "ejs");
 
 const port = process.env.PORT || 3000;
 const expiryTime = 60 * 60 * 1000; // expires afer 1 hour (60 mins * 60 s * 1000ms)
@@ -28,6 +30,7 @@ const node_session_secret = process.env.NODE_SESSION_SECRET;
 
 const { database } = include("mongoDBConnection");
 const userCollection = database.db(mongodb_user_database).collection("users");
+const ObjectId = require("mongodb").ObjectId;
 
 app.use(express.urlencoded({ extended: false }));
 app.use(express.static("public"));
@@ -61,68 +64,46 @@ app.use(
 
 /* Define routes */
 
+// Admin Page
+app.get("/admin", async (req, res) => {
+  if (!req.session.user) {
+    return res.redirect("/login");
+  }
+
+  if (req.session.user_type !== "admin") {
+    return res.status(403).render("error", {
+      title: "403 - Forbidden",
+      message: "Not Authorized",
+      backLink: "/",
+    });
+  }
+
+  const users = await userCollection.find().toArray();
+
+  res.render("admin", {
+    title: "Admin Dashboard",
+    user: req.session.user,
+    user_type: req.session.user_type,
+    users: users,
+  });
+});
+
 // Home Page
 app.get("/", (req, res) => {
-  if (!req.session.user) {
-    res.send(`
-            <html>
-                <head>
-                    <link rel="stylesheet" href="/styles.css">
-                </head>
-                <body>
-                    <div class="container">
-                        <form method="get" action="/signup">
-                            <button type="submit">Sign Up</button>
-                        </form>
-                        <form method="get" action="/login">
-                            <button type="submit">Log In</button>
-                        </form>
-                    </div>
-                </body>
-            </html>
-    `);
-  } else {
-    res.send(`
-            <html>
-                <head>
-                    <link rel="stylesheet" href="/styles.css">
-                </head>
-                <body>
-                    <div>
-                        <h1>Welcome, ${req.session.user}!</h1>
-                        <form method="get" action="/members">
-                            <button type="submit">Go To Members Area</button>
-                        </form>
-                        <form method="get" action="/logout">
-                            <button type="submit">Logout</button>
-                        </form>
-                    </div>
-                </body>
-            </html>
-    `);
-  }
+  res.render("index", {
+    user: req.session.user,
+    user_type: req.session.user_type,
+    title: "Home",
+  });
 });
 
 // Sign Up Page
 app.get("/signup", (req, res) => {
-  res.send(`
-            <html>
-                <head>
-                    <link rel="stylesheet" href="/styles.css">
-                </head>
-                <body>
-                    <div>
-                        <h1>Sign Up</h1>
-                        <form method="post">
-                            <input name="username" type="text" placeholder="Username"/>
-                            <input name="email" type="email" placeholder="Email"/>
-                            <input name="password" type="password" placeholder="Password"/>
-                            <button type="submit">Sign Up</button>
-                        </form>
-                    </div>
-                </body>
-            </html>
-    `);
+  res.render("signup", {
+    user: req.session.user,
+    user_type: req.session.user_type,
+    title: "Sign Up",
+  });
 });
 
 // Sign Up Handler
@@ -152,36 +133,17 @@ app.post("/signup", async (req, res) => {
     } else if (result.error.details[0].context.key === "password") {
       errorMessage = "Password is required";
     }
+    if (await userCollection.findOne({ email: email.trim() })) {
+      errorMessage = "User already exists";
+    }
 
-    return res.send(`
-            <html>
-                <head>
-                    <link rel="stylesheet" href="/styles.css">
-                </head>
-                <body>
-                    <div>
-                        <h1>${errorMessage}</h1>
-                        <a href="/signup">Go Back</a>
-                    </div>
-                </body>
-            </html>
-    `);
-  }
-
-  if (await userCollection.findOne({ email: email.trim() })) {
-    return res.send(`
-            <html>
-                <head>
-                    <link rel="stylesheet" href="/styles.css">
-                </head>
-                <body>
-                    <div>
-                        <h1>User already exists</h1>
-                        <a href="/signup">Go Back</a>
-                    </div>
-                </body>
-            </html>
-    `);
+    return res.render("error", {
+      title: "Error",
+      message: errorMessage,
+      backLink: "/signup",
+      user: req.session.user,
+      user_type: req.session.user_type,
+    });
   }
 
   const hashedPassword = await bcrypt.hash(password.trim(), 10);
@@ -190,29 +152,21 @@ app.post("/signup", async (req, res) => {
     username: username.trim(),
     email: email.trim(),
     password: hashedPassword,
+    user_type: "user",
   });
 
   req.session.user = username;
+  req.session.user_type = "user";
   res.redirect("/members");
 });
 
 // Log In Page
 app.get("/login", (req, res) => {
-  res.send(`
-            <html>
-                <head>
-                    <link rel="stylesheet" href="/styles.css">
-                </head>
-                <body>
-                    <h1>Log In</h1>
-                    <form method="post">
-                        <input name="email" type="email" placeholder="Email"/>
-                        <input name="password" type="password" placeholder="Password"/>
-                        <button type="submit">Log In</button>
-                    </form>
-                </body>
-            </html>
-    `);
+  res.render("login", {
+    title: "Log In",
+    user: req.session.user,
+    user_type: req.session.user_type,
+  });
 });
 
 // Log In Handler
@@ -225,41 +179,62 @@ app.post("/login", async (req, res) => {
   });
 
   if (!user) {
-    return res.send(`
-            <html>
-                <head>
-                    <link rel="stylesheet" href="/styles.css">
-                </head>
-                <body>
-                    <div>
-                        <h1>User not found</h1>
-                        <a href="/login">Go Back</a>
-                    </div>
-                </body>
-            </html>
-    `);
+    return res.render("error", {
+      title: "Error",
+      message: "User not found",
+      backLink: "/login",
+    });
   }
 
   const valid = await bcrypt.compare(password.trim(), user.password);
 
   if (!valid) {
-    return res.send(`
-            <html>
-                <head>
-                    <link rel="stylesheet" href="/styles.css">
-                </head>
-                <body>
-                    <div>
-                        <h1>Invalid password</h1>
-                        <a href="/login">Go Back</a>
-                    </div>
-                </body>
-            </html>
-    `);
+    return res.render("error", {
+      title: "Error",
+      message: "Invalid Password",
+      backLink: "/login",
+    });
   }
 
   req.session.user = user.username;
+  req.session.user_type = user.user_type;
   res.redirect("/members");
+});
+
+// Promote User Handler
+app.get("/promote/:id", async (req, res) => {
+  if (req.session.user_type !== "admin") {
+    return res.status(403).send("Not Authorized");
+  }
+
+  await userCollection.updateOne(
+    { _id: new ObjectId(req.params.id) },
+    {
+      $set: {
+        user_type: "admin",
+      },
+    },
+  );
+
+  res.redirect("/admin");
+});
+
+// Demote User Handler
+app.get("/demote/:id", async (req, res) => {
+  if (req.session.user_type !== "admin") {
+    return res.status(403).send("Not Authorized");
+  }
+
+  await userCollection.updateOne(
+    { _id: new ObjectId(req.params.id) },
+    {
+      $set: {
+        user_type: "user",
+      },
+    },
+  );
+
+  res.redirect("/admin");
 });
 
 // Members Page
@@ -268,7 +243,7 @@ app.get("/members", (req, res) => {
     return res.redirect("/");
   }
 
-  const imagesPath = path.join(__dirname, "public");
+  const imagesPath = path.join(__dirname, "public/img");
 
   const images = fs.readdirSync(imagesPath).filter((file) => {
     return (
@@ -276,26 +251,12 @@ app.get("/members", (req, res) => {
     );
   });
 
-  const random = images[Math.floor(Math.random() * images.length)];
-
-  res.send(`
-    <html>
-        <head>
-            <link rel="stylesheet" href="/styles.css">
-        </head>
-        <body>
-            <div style="container">
-                <h1>Hello, ${req.session.user}</h1>
-                <img src="/${random}" width="300" />
-                <br>
-                <br>
-                <form method="get" action="/logout">
-                    <button>Logout</button>
-                </form>
-            </div>
-        </body>
-    </html>
-  `);
+  res.render("members", {
+    title: "Members Area",
+    user: req.session.user,
+    user_type: req.session.user_type,
+    images: images,
+  });
 });
 
 // Logout Page
@@ -306,7 +267,11 @@ app.get("/logout", (req, res) => {
 
 // 'Try-catch' 404 page not found Page
 app.use((req, res) => {
-  res.status(404).send("Page not found");
+  res.status(404).render("404", {
+    title: "404 - Not Found",
+    user: req.session.user,
+    user_type: req.session.user_type,
+  });
 });
 
 app.listen(port, () => {

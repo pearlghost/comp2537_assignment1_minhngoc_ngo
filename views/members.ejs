@@ -1,0 +1,34 @@
+<%- include("partials/header", {user: user, user_type: user_type}) %>
+
+<div class="card shadow p-4 text-center">
+
+    <h1 class="mb-4">
+        Welcome, <%= user %>
+    </h1>
+
+   <div class="row">
+
+            <% images.forEach(image => { %>
+
+                <div class="col-md-4 mb-4">
+
+                    <img
+                        src="/img/<%= image %>"
+                        class="img-fluid rounded shadow"
+                    >
+
+                </div>
+
+            <% }) %>
+
+    </div>
+
+    <form method="get" action="/logout">
+        <button class="btn btn-danger">
+            Logout
+        </button>
+    </form>
+
+</div>
+
+<%- include("partials/footer", {user: user, user_type: user_type}) %>

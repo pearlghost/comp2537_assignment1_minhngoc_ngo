@@ -1,0 +1,29 @@
+<%- include("partials/header", {user: user, user_type: user_type}) %>
+
+<div class="card shadow p-5 text-center justify-content-center">
+<% if (!user) { %>
+    <div class="container">
+        <form method="get" action="/signup">
+            <button type="submit" class="btn btn-secondary">Sign Up</button>
+        </form>
+
+        <form method="get" action="/login" class="mt-3">
+            <button type="submit" class="btn btn-primary">Log In</button>
+        </form>
+    </div>
+<% } else { %>
+    <div>
+        <h1>Welcome, <%= user %>!</h1>
+
+        <form method="get" action="/members">
+            <button type="submit" class="btn btn-info">Go To Members Area</button>
+        </form>
+
+        <form method="get" action="/logout">
+            <button type="submit" class="btn btn-danger">Logout</button>
+        </form>
+    </div>
+<% } %>
+</div>
+
+<%- include("partials/footer", {user: user, user_type: user_type}) %>

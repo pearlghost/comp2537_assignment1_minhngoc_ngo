@@ -9,7 +9,6 @@ const MongoStore = require("connect-mongo").default;
 const Joi = require("joi");
 const bcrypt = require("bcrypt");
 const mongoSanitize = require("express-mongo-sanitize");
-const { title } = require("process");
 
 const app = express();
 app.set("view engine", "ejs");
@@ -71,10 +70,10 @@ app.get("/admin", async (req, res) => {
   }
 
   if (req.session.user_type !== "admin") {
-    return res.status(403).render("error", {
+    return res.status(403).render("403", {
       title: "403 - Forbidden",
-      message: "Not Authorized",
-      backLink: "/",
+      user: req.session.user,
+      user_type: req.session.user_type,
     });
   }
 
@@ -204,7 +203,11 @@ app.post("/login", async (req, res) => {
 // Promote User Handler
 app.get("/promote/:id", async (req, res) => {
   if (req.session.user_type !== "admin") {
-    return res.status(403).send("Not Authorized");
+    return res.status(403).render("403", {
+      title: "403 - Forbidden",
+      user: req.session.user,
+      user_type: req.session.user_type,
+    });
   }
 
   await userCollection.updateOne(
@@ -222,7 +225,11 @@ app.get("/promote/:id", async (req, res) => {
 // Demote User Handler
 app.get("/demote/:id", async (req, res) => {
   if (req.session.user_type !== "admin") {
-    return res.status(403).send("Not Authorized");
+    return res.status(403).render("403", {
+      title: "403 - Forbidden",
+      user: req.session.user,
+      user_type: req.session.user_type,
+    });
   }
 
   await userCollection.updateOne(

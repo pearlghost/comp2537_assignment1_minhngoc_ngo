@@ -1,0 +1,62 @@
+body {
+  background: linear-gradient(to right, #74ebd5, #acb6e5);
+  min-height: 100vh;
+
+  display: flex;
+  flex-direction: column;
+
+  font-family: Arial, sans-serif;
+}
+
+.page-content {
+  flex: 1;
+
+  display: flex;
+  justify-content: center;
+  align-items: center;
+
+  padding: 40px;
+}
+
+.footer {
+  margin-top: auto;
+}
+
+.card {
+  border-radius: 20px;
+}
+
+.container {
+  width: 100%;
+  max-width: 500px;
+}
+
+.form-card {
+  border-radius: 20px;
+  background-color: white;
+}
+
+h1 {
+  font-weight: bold;
+  color: #333;
+}
+
+button {
+  border-radius: 10px !important;
+  padding: 10px;
+}
+
+img {
+  border-radius: 15px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+footer i {
+  transition: 0.3s;
+  cursor: pointer;
+}
+
+footer i:hover {
+  color: #00d9ff;
+  transform: scale(2);
+}
